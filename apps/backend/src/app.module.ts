@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 
-import { NotificationModule } from './modules/notifications/notification.module';
 
 
 import { FirebaseAdminModule } from './modules/firebase/firebase.module';
@@ -18,7 +17,6 @@ import { PrismaModule } from './modules/prisma/prisma.module';
 
     PrismaModule,
     AuthModule,
-    NotificationModule,
     // FirebaseAdminModule,
     RidesModule,
   ],

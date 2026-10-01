@@ -1,26 +1,13 @@
 import {
-  IsEnum,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsUUID,
   Min,
 } from 'class-validator';
-import { RideStatus } from '../../generated/prisma/enums';
 
 export class CreateRidesRequest {
-  // Null until a driver accepts the ride.
-  @IsUUID()
-  @IsOptional()
-  driverId?: string;
-
-  // Defaults to REQUESTED in the database.
-  @IsEnum(RideStatus)
-  @IsOptional()
-  status?: RideStatus;
-
   @IsLatitude()
   @IsNotEmpty()
   pickupLat: number;
