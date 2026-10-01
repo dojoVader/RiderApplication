@@ -2,6 +2,9 @@ import { config } from 'dotenv';
 import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role } from '../src/generated/prisma/client';
+import {ProcessEnvironment} from "../src/interfaces/interfaces";
+
+
 
 config({ path: '.development.env' });
 
@@ -19,10 +22,10 @@ const prisma = new PrismaClient({
 const SEED_PASSWORD = 'Password123!';
 
 const users: { email: string; role: Role }[] = [
-  { email: 'rider@example.com', role: Role.RIDER },
-  { email: 'driver1@example.com', role: Role.DRIVER },
-  { email: 'driver2@example.com', role: Role.DRIVER },
-  { email: 'driver3@example.com', role: Role.DRIVER },
+  { email: 'rider@seatio.com', role: Role.RIDER },
+  { email: 'johnebuka@seatio.com', role: Role.DRIVER },
+  { email: 'okeowoaderemi@seatio.com', role: Role.DRIVER },
+  { email: 'okeowoadetayo@seatio.com', role: Role.DRIVER },
 ];
 
 async function main() {
