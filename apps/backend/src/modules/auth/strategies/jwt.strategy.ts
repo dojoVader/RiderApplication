@@ -1,14 +1,13 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { User } from '../../../dtos/entities/user.entity';
-import {
-  NotImplementedException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../prisma/prisma.service';
 
+@Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
+    private prisma: PrismaService,
     private config: ConfigService,
   ) {
     super({
@@ -18,13 +17,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user = await this.findUserById(payload.sub);
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      omit: { passwordHash: true },
+    });
     if (!user) throw new UnauthorizedException();
     return user;
-  }
-
-  // TODO: wire up a persistence layer for users.
-  private async findUserById(_id: number): Promise<User | null> {
-    throw new NotImplementedException('Persistence layer removed');
   }
 }

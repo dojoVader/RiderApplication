@@ -1,0 +1,89 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Nest's webpack build can't resolve `.js` imports to the generated `.ts` files.
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  RIDER
+  DRIVER
+  ADMIN
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(RIDER)
+  fcmToken     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ridesAsRider  Ride[] @relation("RiderRides")
+  ridesAsDriver Ride[] @relation("DriverRides")
+
+  @@map("users")
+}
+
+model Ride {
+  id         String     @id @default(uuid()) @db.Uuid
+  riderId    String     @db.Uuid
+  // Null until a driver accepts the ride.
+  driverId   String?    @db.Uuid
+  status     RideStatus @default(REQUESTED)
+  pickupLat  Float
+  pickupLng  Float
+  dropoffLat Float
+  dropoffLng Float
+  fare       Decimal?   @db.Decimal(10, 2)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  rider  User        @relation("RiderRides", fields: [riderId], references: [id])
+  driver User?       @relation("DriverRides", fields: [driverId], references: [id])
+  events RideEvent[]
+
+  @@index([riderId])
+  @@index([driverId])
+  @@index([status])
+  @@map("rides")
+}
+
+model RideEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  rideId    String   @db.Uuid
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId, createdAt])
+  @@map("ride_events")
+}
+
+model Notification {
+  id                Int       @id @default(autoincrement())
+  notification_type String    @db.VarChar(50)
+  message           String
+  created_at        DateTime  @default(now())
+  viewed            Boolean   @default(false)
+  viewed_at         DateTime?
+  status            String    @default("pending") @db.VarChar(20)
+
+  @@map("notifications")
+}

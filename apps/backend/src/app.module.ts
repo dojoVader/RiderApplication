@@ -7,6 +7,7 @@ import { NotificationModule } from './modules/notifications/notification.module'
 
 import { FirebaseAdminModule } from './modules/firebase/firebase.module';
 import { RidesModule } from './modules/rides/rides.module';
+import { PrismaModule } from './modules/prisma/prisma.module';
 
 @Module({
 
@@ -15,6 +16,7 @@ import { RidesModule } from './modules/rides/rides.module';
       envFilePath: '.development.env',
     }),
 
+    PrismaModule,
     AuthModule,
     NotificationModule,
     FirebaseAdminModule,

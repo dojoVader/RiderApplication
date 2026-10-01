@@ -13,7 +13,7 @@ import {
 import { NotificationService } from './notification.service';
 import { CreateNotificationRequest } from '../../dtos/requests/create-notification.request';
 import { UpdateNotificationRequest } from '../../dtos/requests/update-notification.request';
-import { NotificationResponse } from '../../dtos/response/notification.response';
+import { Notification } from '../../generated/prisma/client';
 
 @Controller('notifications')
 export class NotificationController {
@@ -22,7 +22,7 @@ export class NotificationController {
   @Post()
   async create(
     @Body() createNotificationDto: CreateNotificationRequest,
-  ): Promise<NotificationResponse> {
+  ): Promise<Notification> {
     try {
       return await this.notificationService.create(createNotificationDto);
     } catch (error) {
@@ -34,7 +34,7 @@ export class NotificationController {
   }
 
   @Get()
-  async findAll(): Promise<NotificationResponse[]> {
+  async findAll(): Promise<Notification[]> {
     try {
       return await this.notificationService.findAll();
     } catch (error) {
@@ -48,7 +48,7 @@ export class NotificationController {
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-  ): Promise<NotificationResponse> {
+  ): Promise<Notification> {
     try {
       return await this.notificationService.findOne(id);
     } catch (error) {
@@ -65,7 +65,7 @@ export class NotificationController {
   @Put()
   async update(
     @Body() updateNotificationDto: UpdateNotificationRequest,
-  ): Promise<NotificationResponse> {
+  ): Promise<Notification> {
     try {
       return await this.notificationService.update(updateNotificationDto);
     } catch (error) {

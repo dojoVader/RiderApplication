@@ -3,10 +3,10 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  NotImplementedException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { User } from '../../dtos/entities/user.entity';
+import { PrismaService } from '../prisma/prisma.service';
+import { Role } from '../../generated/prisma/enums';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -15,40 +15,36 @@ import { Response } from 'express';
 @Injectable()
 export class AuthService {
   constructor(
+    private prisma: PrismaService,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
 
-  // TODO: wire up a persistence layer for users.
-  private async findUserByEmail(email: string): Promise<User | null> {
-    throw new NotImplementedException('Persistence layer removed');
-  }
-
-  private async saveUser(user: Omit<User, 'id'>): Promise<User> {
-    throw new NotImplementedException('Persistence layer removed');
-  }
-
-  async register(email: string, password: string, role = 'user', name = '') {
+  async register(email: string, password: string, role: Role = Role.RIDER) {
     // Check if the user already exists
-    const existingUser = await this.findUserByEmail(email);
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (existingUser) {
       throw new HttpException(
         'The user already exists on this platform',
         HttpStatus.CONFLICT,
       );
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    return this.saveUser({
-      email,
-      password: hashedPassword,
-      role,
-      name,
+    const passwordHash = await bcrypt.hash(password, 10);
+    const { passwordHash: _, ...user } = await this.prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        role,
+      },
     });
+    return user;
   }
 
   async login(email: string, password: string, res: Response) {
-    const user = await this.findUserByEmail(email);
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -84,16 +80,18 @@ export class AuthService {
 
     return {
       access_token: accessToken,
-      name: user.name,
+      role: user.role,
     };
   }
 
   async validateUser(username: string, pass: string): Promise<any> {
-    const user = await this.findUserByEmail(username);
+    const user = await this.prisma.user.findUnique({
+      where: { email: username },
+    });
     if (!user) {
       throw new BadRequestException('User not found');
     }
-    const isPasswordMatched = await bcrypt.compare(pass, user.password);
+    const isPasswordMatched = await bcrypt.compare(pass, user.passwordHash);
     if (!isPasswordMatched) {
       throw new UnauthorizedException('Invalid password');
     }

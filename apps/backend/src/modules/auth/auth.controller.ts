@@ -29,7 +29,6 @@ export class AuthController {
         body.email,
         body.password,
         body.role,
-        body.name,
       );
     } else {
       throw new HttpException(
@@ -48,7 +47,7 @@ export class AuthController {
     @Req() req: Request,
   ) {
 
-    const { access_token, name } = await this.authService.login(
+    const { access_token, role } = await this.authService.login(
       body.email,
       body.password,
       res,
@@ -57,7 +56,7 @@ export class AuthController {
     return {
       message: 'Login successful',
       access_token,
-      name,
+      role,
     };
   }
 
