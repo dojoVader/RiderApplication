@@ -35,11 +35,8 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.6",
-    "@tailwindcss/vite": "^4.1.11",
     "passport-jwt": "^4.0.1",
     "bcrypt": "^6.0.0",
-    "google-auth-library": "^10.5.0",
-    "mysql": "^2.18.1",
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2",
     "rxjs": "^7.8.1",
@@ -51,7 +48,6 @@
     "nestjs-firebase": "^11.0.1",
     "@nestjs/axios": "^4.0.1",
     "tailwindcss-primeui": "^0.6.1",
-    "@polar-sh/sdk": "^0.46.6"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
