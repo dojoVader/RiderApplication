@@ -52,7 +52,6 @@ export class AuthController {
       body.password,
       res,
     );
-    console.log(req.cookies);
     return {
       message: 'Login successful',
       access_token,
@@ -60,7 +59,7 @@ export class AuthController {
     };
   }
 
-  @Get('verify')
+  @Get('me')
   @UseGuards(JwtGuard)
   verify(@Req() req: Request) {
     return req.user;

@@ -48,15 +48,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // // Check if installation exists for the user
-    // const installation = await findInstallationByUserId(user.id);
-    // if (!installation) {
-    //   throw new BadRequestException({
-    //     message:
-    //       'No installation found for this user.',
-    //   });
-    // }
-
     const payload = { email: user.email, sub: user.id, role: user.role };
     const accessToken = this.jwtService.sign(payload, {
       secret: this.config.get<string>('SECRET'),
@@ -64,19 +55,13 @@ export class AuthService {
     // Set HTTP-only, same-site cookie
     res.cookie('jwt', accessToken, {
       httpOnly: true, // Prevents client-side JavaScript access
-      secure: true, // Use secure in production
+      // Secure cookies are never sent over plain http by non-browser clients
+      // (HTTPie, curl), so only require HTTPS in production.
+      secure: this.config.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
       maxAge: 1000 * 60 * 60, // 1 hour
       path: '/', // Accessible across the app
     });
-
-    console.log({
-      httpOnly: true, // Prevents client-side JavaScript access
-      secure: true, // Use secure in production
-      sameSite: 'strict',
-      maxAge: 1000 * 60 * 60, // 1 hour
-      path: '/', // Accessible across the app
-    })
 
     return {
       access_token: accessToken,
