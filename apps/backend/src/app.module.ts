@@ -7,6 +7,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { FirebaseAdminModule } from './modules/firebase/firebase.module';
 import { RidesModule } from './modules/rides/rides.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { RedisCacheModule } from './modules/redis/cache.module';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
 
@@ -16,6 +19,9 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     }),
 
     PrismaModule,
+    RedisModule,
+    RedisCacheModule,
+    QueueModule,
     AuthModule,
     FirebaseAdminModule,
     RidesModule,
