@@ -9,3 +9,5 @@ README.md
 .env
 .nyc_output
 coverage
+dist
+.development.env

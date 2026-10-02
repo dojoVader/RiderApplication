@@ -1,0 +1,82 @@
+# Development stack with hot reload. Open http://localhost:8080
+#   docker compose up --build
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./apps/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - spa
+      - backend
+
+  spa:
+    build:
+      context: ./apps/spa
+      target: dev
+    environment:
+      # Same origin as the page, via nginx. Overrides .env.development.
+      NEXT_PUBLIC_API_URL: /api
+    volumes:
+      - ./apps/spa:/app
+      # Keep the container's own node_modules and build cache, not the host's.
+      - /app/node_modules
+      - /app/.next
+
+  backend:
+    build:
+      context: ./apps/backend
+      target: dev
+    # Everything else (SECRET, Firebase, Polar, ...) still comes from .development.env;
+    # these override it so the app talks to the containers below.
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER:-rider}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-rider}
+      DB_NAME: ${POSTGRES_DB:-rider}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+    ports:
+      - "9229:9229" # Node inspector, for attaching a debugger
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+      # GOOGLE_APPLICATION_CREDENTIALS is ../../firebase/... relative to /app.
+      - ./firebase:/firebase:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rider}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rider}
+      POSTGRES_DB: ${POSTGRES_DB:-rider}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
