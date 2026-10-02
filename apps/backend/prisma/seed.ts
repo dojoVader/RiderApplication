@@ -24,7 +24,7 @@ const SEED_PASSWORD = 'Password123!';
 const users: { email: string; role: Role }[] = [
   { email: 'rider@seatio.com', role: Role.RIDER },
   { email: 'johnebuka@seatio.com', role: Role.DRIVER },
-  { email: 'okeowoaderemi@seatio.com', role: Role.DRIVER },
+  { email: 'D', role: Role.DRIVER },
   { email: 'okeowoadetayo@seatio.com', role: Role.DRIVER },
 ];
 

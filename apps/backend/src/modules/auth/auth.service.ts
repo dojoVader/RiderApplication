@@ -54,18 +54,29 @@ export class AuthService {
     });
     // Set HTTP-only, same-site cookie
     res.cookie('jwt', accessToken, {
-      httpOnly: true, // Prevents client-side JavaScript access
-      // Secure cookies are never sent over plain http by non-browser clients
-      // (HTTPie, curl), so only require HTTPS in production.
-      secure: this.config.get<string>('NODE_ENV') === 'production',
-      sameSite: 'strict',
+      ...this.sessionCookieOptions(),
       maxAge: 1000 * 60 * 60, // 1 hour
-      path: '/', // Accessible across the app
     });
 
     return {
       access_token: accessToken,
       role: user.role,
+    };
+  }
+
+  // Browsers only clear a cookie when the attributes match the ones it was set with.
+  logout(res: Response) {
+    res.clearCookie('jwt', this.sessionCookieOptions());
+  }
+
+  private sessionCookieOptions() {
+    return {
+      httpOnly: true, // Prevents client-side JavaScript access
+      // Secure cookies are never sent over plain http by non-browser clients
+      // (HTTPie, curl), so only require HTTPS in production.
+      secure: this.config.get<string>('NODE_ENV') === 'production',
+      sameSite: 'strict' as const,
+      path: '/', // Accessible across the app
     };
   }
 

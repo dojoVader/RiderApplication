@@ -1,4 +1,4 @@
-import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRidesRequest } from 'src/dtos/requests/create-rides.request';
 import { PaginationRequest } from '../../dtos/requests/pagination.request';
@@ -18,12 +18,22 @@ const RIDE_TRANSITIONS: Record<RideStatus, RideStatus[]> = {
   [RideStatus.CANCELLED]: [],
 };
 
+// Rides that aren't finished yet; a user can only have one at a time.
+const ACTIVE_RIDE_STATUSES: RideStatus[] = [
+  RideStatus.REQUESTED,
+  RideStatus.ACCEPTED,
+  RideStatus.IN_PROGRESS,
+];
+
 @Injectable()
 export class RidesService {
   constructor(private prisma: PrismaService) {}
 
   // Create a REQUESTED ride for this rider. The driver is assigned later via acceptRide.
   async createRides(ride: CreateRidesRequest, riderId: string) {
+    if (await this.findActiveRide(riderId)) {
+      throw new ConflictException('You already have a ride in progress');
+    }
     return await this.prisma.ride.create({
       data: {
         riderId,
@@ -49,6 +59,26 @@ export class RidesService {
       throw new RideNotFoundException();
     }
     return ride;
+  }
+
+  // Open requests a driver can accept, oldest first.
+  async findAvailableRides(): Promise<Ride[]> {
+    return this.prisma.ride.findMany({
+      where: { status: RideStatus.REQUESTED, driverId: null },
+      orderBy: { createdAt: 'asc' },
+      take: 50,
+    });
+  }
+
+  // The user's unfinished ride (as rider or driver), if any.
+  async findActiveRide(userId: string): Promise<Ride | null> {
+    return this.prisma.ride.findFirst({
+      where: {
+        OR: [{ riderId: userId }, { driverId: userId }],
+        status: { in: ACTIVE_RIDE_STATUSES },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // Riders and drivers see rides they took part in; admins see every ride.
@@ -85,6 +115,15 @@ export class RidesService {
       }
       if (ride.riderId === driverId) {
         throw new ForbiddenException('Drivers cannot accept their own ride');
+      }
+      const busy = await tx.ride.findFirst({
+        where: {
+          driverId,
+          status: { in: [RideStatus.ACCEPTED, RideStatus.IN_PROGRESS] },
+        },
+      });
+      if (busy) {
+        throw new ConflictException('Finish your current ride before accepting another');
       }
 
       const { count } = await tx.ride.updateMany({

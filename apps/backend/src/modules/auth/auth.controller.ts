@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Header,
+  HttpCode,
   HttpException,
   HttpStatus,
   Res,
@@ -57,6 +58,13 @@ export class AuthController {
       access_token,
       role,
     };
+  }
+
+  // No guard: clearing the cookie is harmless, and an expired session should still be able to log out.
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.authService.logout(res);
   }
 
   @Get('me')

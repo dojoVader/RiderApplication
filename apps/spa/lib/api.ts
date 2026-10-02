@@ -1,6 +1,6 @@
 // In production nginx proxies /api/* to the backend on the same origin.
 // In development point this at the backend directly (see .env.development).
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 export class ApiError extends Error {
   constructor(
