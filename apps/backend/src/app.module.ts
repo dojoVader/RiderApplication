@@ -17,7 +17,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
 
     PrismaModule,
     AuthModule,
-    // FirebaseAdminModule,
+    FirebaseAdminModule,
     RidesModule,
   ],
 })

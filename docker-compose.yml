@@ -44,8 +44,6 @@ services:
     volumes:
       - ./apps/backend:/app
       - /app/node_modules
-      # GOOGLE_APPLICATION_CREDENTIALS is ../../firebase/... relative to /app.
-      - ./firebase:/firebase:ro
     depends_on:
       postgres:
         condition: service_healthy

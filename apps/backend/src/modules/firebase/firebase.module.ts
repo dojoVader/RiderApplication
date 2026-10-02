@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FirebaseModule } from 'nestjs-firebase';
-import * as path from 'path';
 import { FirebaseService } from './firebase.service';
-import { FirebaseController } from './firebase.controller';
+import {
+  decodeServiceAccount,
+  FIREBASE_SERVICE_ACCOUNT,
+} from './firebase-credentials';
 
 @Module({
   imports: [
@@ -12,17 +14,16 @@ import { FirebaseController } from './firebase.controller';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const credPath = config.get<string>('GOOGLE_APPLICATION_CREDENTIALS');
+        const encoded = config.get<string>(FIREBASE_SERVICE_ACCOUNT);
         return {
-          googleApplicationCredential: credPath
-            ? path.resolve(credPath)
+          googleApplicationCredential: encoded
+            ? decodeServiceAccount(encoded)
             : undefined,
         };
       },
     }),
   ],
   providers: [FirebaseService],
-  controllers: [FirebaseController],
   exports: [FirebaseService],
 })
 export class FirebaseAdminModule {}
