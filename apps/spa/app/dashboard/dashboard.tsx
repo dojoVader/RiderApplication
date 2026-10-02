@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DriverDashboard } from "@/components/driver-dashboard";
+import { NotificationToasts } from "@/components/notification-toasts";
+import { PushNotifications } from "@/components/push-notifications";
 import { RiderDashboard } from "@/components/rider-dashboard";
 import { useSession } from "@/lib/use-session";
 
@@ -21,6 +23,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
+      <NotificationToasts />
       <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-5 sm:px-6">
         <Link href="/" className="text-lg font-semibold tracking-tight">
           Ride
@@ -46,6 +49,7 @@ export default function Dashboard() {
         <h1 className="mb-6 text-2xl font-semibold tracking-tight">
           {user.role === "DRIVER" ? "Drive" : "Ride"}
         </h1>
+        {user.role !== "ADMIN" && <PushNotifications userId={user.sub} role={user.role} />}
         {user.role === "DRIVER" ? (
           <DriverDashboard />
         ) : user.role === "RIDER" ? (

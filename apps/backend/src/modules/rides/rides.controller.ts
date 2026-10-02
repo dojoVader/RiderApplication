@@ -5,6 +5,7 @@ import {PaginationRequest} from "../../dtos/requests/pagination.request";
 import {UpdateRideStatusRequest} from "../../dtos/requests/update-ride-status.request";
 import {RidesService} from "./rides.service";
 import {RidesGateway} from "./rides.gateway";
+import {NotificationService} from "../notifications/notification.service";
 import {JwtGuard} from "../auth/guards/jwtauth.guard";
 import {RolesGuard} from "../auth/guards/roles.guard";
 import {Role} from "../../generated/prisma/enums";
@@ -19,6 +20,7 @@ export class RidesController {
     constructor(
         private readonly rideService: RidesService,
         private readonly ridesGateway: RidesGateway,
+        private readonly notificationService: NotificationService,
     ) {}
 
     @Post()
@@ -28,6 +30,7 @@ export class RidesController {
         const user = req.user as JwtUser;
         const ride = await this.rideService.createRides(body, user.sub);
         this.ridesGateway.rideRequested(ride);
+        await this.notificationService.rideRequested(ride);
         return ride;
     }
 
@@ -70,7 +73,8 @@ export class RidesController {
     async acceptRide(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
         const user = req.user as JwtUser;
         const ride = await this.rideService.acceptRide(id, user.sub);
-        this.ridesGateway.rideUpdated(ride);
+        await this.ridesGateway.rideUpdated(ride);
+        await this.notificationService.rideUpdated(ride, user.sub);
         return ride;
     }
 
@@ -83,7 +87,8 @@ export class RidesController {
     ) {
         const user = req.user as JwtUser;
         const ride = await this.rideService.updateRideStatus(id, user.sub, user.role, body.status);
-        this.ridesGateway.rideUpdated(ride);
+        await this.ridesGateway.rideUpdated(ride);
+        await this.notificationService.rideUpdated(ride, user.sub);
         return ride;
     }
 }

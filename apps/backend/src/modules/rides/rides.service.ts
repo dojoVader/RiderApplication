@@ -1,4 +1,10 @@
-import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import {
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRidesRequest } from 'src/dtos/requests/create-rides.request';
 import { PaginationRequest } from '../../dtos/requests/pagination.request';
@@ -7,6 +13,7 @@ import { Prisma, Ride } from '../../generated/prisma/client';
 import { RideStatus, Role } from '../../generated/prisma/enums';
 import { RideNotFoundException } from '../../exceptions/ride_not_found.exception';
 import { InvalidRideTransitionException } from '../../exceptions/invalid_ride_transition.exception';
+import { RIDE_CACHE_TTL_MS, rideCacheKey } from './rides.cache';
 
 // Allowed status moves. REQUESTED -> ACCEPTED is absent on purpose: it only
 // happens through acceptRide, which also assigns the driver.
@@ -27,14 +34,17 @@ const ACTIVE_RIDE_STATUSES: RideStatus[] = [
 
 @Injectable()
 export class RidesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cache: Cache,
+  ) {}
 
   // Create a REQUESTED ride for this rider. The driver is assigned later via acceptRide.
   async createRides(ride: CreateRidesRequest, riderId: string) {
     if (await this.findActiveRide(riderId)) {
       throw new ConflictException('You already have a ride in progress');
     }
-    return await this.prisma.ride.create({
+    return this.prisma.ride.create({
       data: {
         riderId,
         dropoffLat: ride.dropoffLat,
@@ -49,7 +59,7 @@ export class RidesService {
   // Only the ride's rider, its assigned driver, or an admin may view it.
   // Anyone else gets a 404 so ride IDs can't be probed for existence.
   async findRideForUser(id: string, userId: string, role: Role) {
-    const ride = await this.prisma.ride.findUnique({ where: { id } });
+    const ride = await this.findRideCached(id);
     if (
       !ride ||
       (role !== Role.ADMIN &&
@@ -123,7 +133,9 @@ export class RidesService {
         },
       });
       if (busy) {
-        throw new ConflictException('Finish your current ride before accepting another');
+        throw new ConflictException(
+          'Finish your current ride before accepting another',
+        );
       }
 
       const { count } = await tx.ride.updateMany({
@@ -191,5 +203,28 @@ export class RidesService {
       });
       return tx.ride.findUniqueOrThrow({ where: { id } });
     });
+  }
+
+  // Cache-aside lookup shared by every user who can see the ride; the access
+  // check stays in findRideForUser so it runs on every call. Misses (unknown
+  // IDs) aren't cached.
+  private async findRideCached(id: string): Promise<Ride | null> {
+    const key = rideCacheKey(id);
+    const cached = await this.cache.get<Ride>(key);
+    if (cached) {
+      // Stored as JSON: restore the Date fields. `fare` stays the string
+      // Prisma's Decimal serialises to, which is what API responses send anyway.
+      return {
+        ...cached,
+        createdAt: new Date(cached.createdAt),
+        updatedAt: new Date(cached.updatedAt),
+      };
+    }
+
+    const ride = await this.prisma.ride.findUnique({ where: { id } });
+    if (ride) {
+      await this.cache.set(key, ride, RIDE_CACHE_TTL_MS);
+    }
+    return ride;
   }
 }

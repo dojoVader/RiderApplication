@@ -1,4 +1,5 @@
-import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { Inject, Logger, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -16,6 +17,7 @@ import { DriverLocationMessage } from '../../dtos/requests/driver-location.messa
 import { RideSubscriptionMessage } from '../../dtos/requests/ride-subscription.message';
 import { Ride } from '../../generated/prisma/client';
 import { RideStatus, Role } from '../../generated/prisma/enums';
+import { rideCacheKey } from './rides.cache';
 import { RidesService } from './rides.service';
 
 // Same payload as the HTTP JwtGuard puts on req.user.
@@ -84,6 +86,7 @@ export class RidesGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly ridesService: RidesService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   handleConnection(socket: Socket) {
@@ -160,7 +163,11 @@ export class RidesGateway implements OnGatewayConnection {
   }
 
   // Called by RidesController after a ride is accepted or changes status.
-  rideUpdated(ride: Ride) {
+  async rideUpdated(ride: Ride) {
+    // Drop the cached copy first, so neither the clients reacting to this
+    // event nor the next driver:location check read the old status.
+    await this.cache.del(rideCacheKey(ride.id));
+
     const rooms = [rideRoom(ride.id), userRoom(ride.riderId)];
     if (ride.driverId) rooms.push(userRoom(ride.driverId));
     this.server.to(rooms).emit('ride:updated', ride);
